@@ -1,7 +1,6 @@
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const cors = require('cors');
-const router = express.Router()
 
 const Twitch = require("./events/twitch");
 const DAO = require("./dao/dao");
@@ -9,6 +8,10 @@ const UserManagementController = require("./controller/UserManagementController"
 const TwitchController = require("./controller/TwitchController");
 const AlertboxController = require("./controller/AlertboxController");
 const CommandsController = require("./controller/CommandsController");
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
+const serviceAccount = require('./config/serviceAccountKey.json');
+
 require('dotenv').config()
 
 //TODO: Make exceptions which sites can reach it
@@ -20,7 +23,14 @@ require('dotenv').config()
 class Index{
     constructor() {
         global.app = express();
-        global.router = router;
+
+        initializeApp({
+            credential: cert(serviceAccount)
+        })
+
+        global.db = getFirestore()
+        this.test()
+
         this.port = process.env.PORT;
         app.use(fileUpload());
         app.use(cors({

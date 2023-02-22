@@ -4,19 +4,7 @@ const User = require("../model/user");
 const Command = require("../model/command");
 
 class DAO {
-    constructor() {
-        this.connection =
-            mysql.createConnection({
-                host: 'localhost',
-                user: 'root',
-                database: 'twitch',
-                Promise: bluebird
-            });
-    }
-
-    getConnection() {
-        return this.connection;
-    }
+    constructor() {}
 
     async getUsers() {
         let [rows, fields] = await (await this.getConnection()).execute(
@@ -24,10 +12,15 @@ class DAO {
         return rows;
     }
 
+    async getUserDocById(id){
+        return await db.collection('users').doc(id);
+    }
+
     async getUserById(id) {
-        let [rows, fields] = await (await this.getConnection()).execute(
-            'SELECT * FROM `users` WHERE `users`.`id`=?', [id]);
-        return rows;
+        let docRef = this.getUserDocById(id).get()
+        let doc = docRef.get()
+        if(!doc.exists) return null
+        return doc.data()
     }
 
     async getCommand(channel, command) {
