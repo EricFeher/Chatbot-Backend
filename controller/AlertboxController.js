@@ -1,6 +1,6 @@
 const AlertboxService = require("../service/AlertboxService");
 const UserManagementService = require("../service/UserManagementService");
-const DAO = require("../dao/dao");
+const DAO = require("../dao/DAO");
 
 class AlertboxController {
 

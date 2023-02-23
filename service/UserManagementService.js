@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken")
-const DAO = require("../dao/dao");
+const DAO = require("../dao/DAO");
 const TwitchService = require("./TwitchService");
 class UserManagementService{
 

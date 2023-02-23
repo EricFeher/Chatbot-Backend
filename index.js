@@ -2,14 +2,15 @@ const express = require('express');
 const fileUpload = require('express-fileupload');
 const cors = require('cors');
 
-const Twitch = require("./events/twitch");
-const DAO = require("./dao/dao");
+const Twitch = require("./events/Twitch");
+const DAO = require("./dao/DAO");
 const UserManagementController = require("./controller/UserManagementController");
 const TwitchController = require("./controller/TwitchController");
 const AlertboxController = require("./controller/AlertboxController");
 const CommandsController = require("./controller/CommandsController");
 const { initializeApp, cert } = require('firebase-admin/app');
-const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
+const { getFirestore } = require('firebase-admin/firestore');
+const { collection, query, where} = require('firebase/firestore')
 const serviceAccount = require('./config/serviceAccountKey.json');
 
 require('dotenv').config()
@@ -30,7 +31,6 @@ class Index{
 
         global.db = getFirestore()
         this.test()
-
         this.port = process.env.PORT;
         app.use(fileUpload());
         app.use(cors({
@@ -49,7 +49,7 @@ class Index{
     start(){
         new DAO().getUsers().then((rows) => {
             let userData = Object.values(JSON.parse(JSON.stringify(rows)));
-            let result="";
+            let result="#solavid,";
             userData.forEach((object)=>{
                result+="#"+object["username"]+",";
             });
@@ -74,6 +74,13 @@ class Index{
     }
 
     //TODO: REGISTER USERS TO THE DATABASE
+    async test() {
+        let commandRef = db.collection("command")
+        let query = await commandRef.where("userid", "==", "Erik").get()
+        await query.forEach(doc => {
+            console.log(doc.data())
+        })
+    }
 }
 
 new Index();

@@ -1,6 +1,6 @@
 const {default: axios} = require("axios");
 const UserManagementService = require("../service/UserManagementService")
-const User = require("../model/user");
+const User = require("../model/User");
 const TwitchService = require("../service/TwitchService");
 
 class UserManagementController{
