@@ -1,6 +1,7 @@
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const cors = require('cors');
+require('dotenv').config()
 
 const Twitch = require("./events/Twitch");
 const DAO = require("./dao/DAO");
@@ -8,30 +9,29 @@ const UserManagementController = require("./controller/UserManagementController"
 const TwitchController = require("./controller/TwitchController");
 const AlertboxController = require("./controller/AlertboxController");
 const CommandsController = require("./controller/CommandsController");
+const AlertWebSocket = require("./socket/AlertWebSocket")
+
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
-const { collection, query, where} = require('firebase/firestore')
+const { getStorage } = require('firebase-admin/storage');
 const serviceAccount = require('./config/serviceAccountKey.json');
+const TwitchService = require("./service/TwitchService");
 
-require('dotenv').config()
 
-//TODO: Make exceptions which sites can reach it
-/*app.use(cors({
-    origin: ['http://example.com', 'https://example.com']
-}));*/
 
 
 class Index{
     constructor() {
-        global.app = express();
-
-        initializeApp({
-            credential: cert(serviceAccount)
-        })
-
-        global.db = getFirestore()
-        this.test()
         this.port = process.env.PORT;
+        this.initExpress()
+        this.initFirebase()
+        this.start();
+        this.listen();
+    }
+
+    initExpress(){
+        //new TwitchService().deleteAllEventListener()
+        global.app = express();
         app.use(fileUpload());
         app.use(cors({
             credentials: true,
@@ -42,21 +42,28 @@ class Index{
         app.use(express.raw({
             type: 'application/json'
         }))
-        this.start();
-        this.listen();
+    }
+
+    initFirebase(){
+        initializeApp({
+            credential: cert(serviceAccount),
+            storageBucket: "gs://chatbot-for-twitch.appspot.com"
+        })
+        global.db = getFirestore()
+        global.storage = getStorage().bucket()
     }
 
     start(){
-        new DAO().getUsers().then((rows) => {
-            let userData = Object.values(JSON.parse(JSON.stringify(rows)));
-            let result="#solavid,";
-            userData.forEach((object)=>{
-               result+="#"+object["username"]+",";
+        new DAO().getUsers().then((data) => {
+            let result="";
+            data.forEach((object)=>{
+               result+="#"+object.username+",";
             });
             result=result.slice(0,-1)
             console.log(result)
             global.twitch=new Twitch(result);
             this.setUpControllerClasses()
+            this.setUpAlertWebSocket()
         });
     }
 
@@ -73,13 +80,8 @@ class Index{
         new CommandsController()
     }
 
-    //TODO: REGISTER USERS TO THE DATABASE
-    async test() {
-        let commandRef = db.collection("command")
-        let query = await commandRef.where("userid", "==", "Erik").get()
-        await query.forEach(doc => {
-            console.log(doc.data())
-        })
+    setUpAlertWebSocket(){
+        global.alertWebSocket = new AlertWebSocket()
     }
 }
 

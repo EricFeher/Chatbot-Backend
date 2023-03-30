@@ -164,7 +164,7 @@ A bejövő üzenetekből kiválasztja a kommandokat és választ ad a kommandokr
 Átlagos nézők által beváltható, és egyszerű kommandok
  */
     async basicCommands(userid,channel,command){
-        let cmd = await new DAO().getCommandByIdAndCommand(userid,command)
+        let cmd = await new DAO().getCommandByUserIdAndCommand(userid,command)
         if(cmd!==undefined){
             this.sendMessage(channel,cmd.result);
         }

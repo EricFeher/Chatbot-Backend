@@ -28,7 +28,7 @@ class UserManagementService{
             twitch.joinChannel("#"+user.username)
             return user.id;
         }catch(error){
-            if(error.toString().indexOf("Duplicate entry")===-1){
+            if(error.toString().indexOf("Already existing user in database")===-1){
                 throw Error("[MANAGEUSER]: User Creation Error: #"+error)
             }
             //NOTE: If the user already exists in the db it updates the user
@@ -51,9 +51,9 @@ class UserManagementService{
 
     async addRefreshTokenToUser(id){
         let data = await new DAO().getRefreshTokenById(id)
-        let token = Object.values(JSON.parse(JSON.stringify(data)))
-        if(token[0]!==undefined){
-            return token[0].refresh_token
+        let token = data?.refresh_token
+        if(token!==undefined){
+            return token
         }
         let refresh_token = jwt.sign({id},process.env.REFRESH_TOKEN_SECRET)
         await new DAO().addRefreshToken(id,refresh_token)
@@ -80,8 +80,8 @@ class UserManagementService{
             return accessToken
         } catch (err) {
             let data = await new DAO().getRefreshTokenByToken(refreshToken)
-            let token = Object.values(JSON.parse(JSON.stringify(data)))
-            if(token[0]===undefined){
+            let token = data?.refresh_token
+            if(token===undefined){
                 return 401
             }
             return await this.createAccessToken(refreshToken)

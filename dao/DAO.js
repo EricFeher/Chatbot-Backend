@@ -1,39 +1,23 @@
-const mysql = require("mysql2/promise");
-const bluebird = require('bluebird');
-const User = require("../model/User");
-const Command = require("../model/Command");
-
 class DAO {
     constructor() {}
 
-    getConnection(){
-        return null
-    }
-
     async getUsers() {
-        /*let [rows, fields] = await (await this.getConnection()).execute(
-            'SELECT * FROM `users`', []);
-        return rows;*/
-        return {}
-    }
-
-    getUserDocById(id){
-        return db.collection('users').doc(id);
+        let query = await db.collection('user').get()
+        let users = [];
+        await query.forEach(doc=>{
+            users.push(doc.data())
+        })
+        return users
     }
 
     async getUserById(id) {
-        let docRef = this.getUserDocById(id)
+        let docRef = db.collection('user').doc(id);
         let doc = await docRef.get()
         if(!doc.exists) return null
         return doc.data()
     }
 
-    async getCommandByIdAndCommand(id, command){
-        /*let [rows, fields] = await (await this.getConnection()).execute(
-            'SELECT * FROM `commands` WHERE `command` LIKE ? AND `userid` LIKE ?'
-            , [command, id]);
-        return rows;*/
-
+    async getCommandByUserIdAndCommand(id, command){
         let commandRef = db.collection("command")
         let queryRef = await commandRef.where("userid", "==", id).where("command", "==", command)
         let query = await queryRef.get()
@@ -46,10 +30,6 @@ class DAO {
     }
 
     async getAllCommandsForUser(id) {
-        /*let [rows, fields] = await (await this.getConnection()).execute(
-            'SELECT `command`,`result` FROM `commands` WHERE `commands`.`userid` LIKE ?'
-            , [id]);
-        return rows;*/
         let commandRef = db.collection("command")
         let query = await commandRef.where("userid", "==", id).get()
         let result = []
@@ -60,10 +40,8 @@ class DAO {
     }
 
     async createUser(user) {
-        /*await (await this.getConnection()).execute(
-            'INSERT INTO `users` (`id`,`username`,`email`,`access_token`,`refresh_token`,`id_token`) ' +
-            'VALUES (?,?,?,?,?,?)'
-            , [user.id, user.username, user.email, user.access_token, user.refresh_token, user.id_token]);*/
+        let checkIfExist = await this.getUserById(user.id)
+        if(checkIfExist!==null) throw Error("Already existing user in database")
         let userRef = db.collection("user").doc(user.id)
         await userRef.set({
             userid: user.id,
@@ -76,10 +54,6 @@ class DAO {
     }
 
     async updateUser(user) {
-        /*await (await this.getConnection()).execute(
-            'UPDATE `users` SET `username`=?, `email`=?, `access_token`=?, `refresh_token`=?, `id_token`=? ' +
-            'WHERE `id`=?'
-            , [user.username, user.email, user.access_token, user.refresh_token, user.id_token, user.id]);*/
         let userRef = db.collection("user").doc(user.id)
         await userRef.set({
             userid: user.id,
@@ -92,9 +66,8 @@ class DAO {
     }
 
     async createCommand(cmd) {
-        /*await (await this.getConnection()).execute(
-            'INSERT INTO `commands` (`userid`,`command`,`result`) VALUES (?,?,?)'
-            , [cmd.userid, cmd.command, cmd.result]);*/
+        let checkIfExist = await this.getCommandByUserIdAndCommand(cmd.userid,cmd.command)
+        if(checkIfExist!==undefined) return
         let commandRef = db.collection("command").doc()
         await commandRef.set({
             userid: cmd.userid,
@@ -104,9 +77,6 @@ class DAO {
     }
 
     async updateCommand(cmd) {
-        /*await (await this.getConnection()).execute(
-            'UPDATE  `commands` SET `result`=? WHERE `command`=? AND `userid`=?',
-            [cmd.result, cmd.command, cmd.userid]);*/
         let query = await db.collection("command").where("command","==",cmd.command).where("userid","==",cmd.userid).get()
         let commandRef;
         query.forEach(doc =>{
@@ -118,9 +88,6 @@ class DAO {
     }
 
     async deleteCommand(cmd) {
-        /*await (await this.getConnection()).execute(
-            'DELETE FROM `commands` WHERE `command` LIKE ? AND `userid` LIKE ?',
-            [cmd.command, cmd.userid]);*/
         let query = await db.collection("command").where("command","==",cmd.command).where("userid","==",cmd.userid).get()
         let commandRef;
         query.forEach(doc =>{
@@ -130,57 +97,98 @@ class DAO {
     }
 
     async deleteUserById(id) {
-        /*await (await this.getConnection()).execute(
-            'DELETE FROM `users` WHERE `id`=?', [id]);*/
+        await db.collection("user").doc(id).delete()
     }
 
     async addRefreshToken(id, token) {
-        /*await (await this.getConnection()).execute(
-            'INSERT INTO `sessions` (`id`,`refresh_token`) VALUES (?,?)'
-            , [id, token]
-        )*/
+        let sessionRef = db.collection("session").doc(id)
+        await sessionRef.set({
+            refresh_token: token
+        })
     }
 
     async getRefreshTokenByToken(token) {
-        /*let [rows, fields] = await (await this.getConnection()).execute(
-            'SELECT `id`,`refresh_token` FROM `sessions` WHERE `refresh_token` LIKE ?'
-            , [token]);
-        return rows;*/
-        return {}
+        let query = await db.collection("session").where("refresh_token","==",token).get()
+        let tokenData;
+        query.forEach(doc =>{
+            tokenData = doc.data()
+        })
+        return tokenData
     }
 
     async getRefreshTokenById(id) {
-        /*let [rows, fields] = await (await this.getConnection()).execute(
-            'SELECT `id`,`refresh_token` FROM `sessions` WHERE `id` LIKE ?'
-            , [id]);
-        return rows;*/
-        return {}
+        let tokenDoc = await db.collection("session").doc(id).get()
+        return tokenDoc.data()
     }
 
-    async createAlertBox(userid, type, message, volume, duration, ttsvolume, imagefilename, audiofilename) {
-        /*let result = await (await this.getConnection()).execute(
-            'INSERT INTO `alertbox` (`userid`,`type`,`message`,`volume`,`duration`,`tssvolume`,`imagefilename`,`audiofilename`) VALUES (?,?,?,?,?,?,?,?)'
-            , [userid, type, message, volume, duration, ttsvolume, imagefilename,audiofilename]
-        )
-        return result*/
-        return {}
+    async createAlertBox(userid, type, message, volume, duration, ttsVolume, imageFileName, audioFileName) {
+        let checkIfExist = await this.getAlertBox(userid,type)
+        if(checkIfExist!==undefined) return
+        let alertBoxRef = db.collection("alertbox").doc()
+        await alertBoxRef.set({
+            userid, type, message, volume, duration, ttsVolume, imageFileName, audioFileName
+        })
     }
 
-    async updateAlertBox(userid, type, message, volume, duration, ttsvolume, imagefilename, audiofilename) {
-        /*let result = await (await this.getConnection()).execute(
-            'UPDATE `alertbox` SET `message`=?, `volume`=?, `duration`=?, `tssvolume`=?, `imagefilename`=?, `audiofilename`=? WHERE `userid` LIKE ? AND `type` LIKE ?'
-            , [message, volume, duration, ttsvolume, imagefilename, audiofilename, userid, type]
-        )
-        return result*/
-        return {}
+    async createChannelPoint(userid, type, ttsVolume) {
+        let checkIfExist = await this.getAlertBox(userid,type)
+        if(checkIfExist!==undefined) return
+        let alertBoxRef = db.collection("alertbox").doc()
+        await alertBoxRef.set({
+            userid, type, ttsVolume
+        })
+    }
+
+    async updateAlertBox(userid, type, message, volume, duration, ttsVolume, imageFileName, audioFileName) {
+        let query = await db.collection("alertbox").where("userid","==",userid).where("type","==", type).get()
+        let alertBoxRef;
+        query.forEach(doc => {
+            alertBoxRef = db.collection("alertbox").doc(doc.id)
+        })
+        await alertBoxRef.update({
+            userid, type, message, volume, duration, ttsVolume, imageFileName, audioFileName
+        })
+    }
+
+    async updateChannelPoint(userid, type, ttsVolume) {
+        let query = await db.collection("alertbox").where("userid","==",userid).where("type","==", type).get()
+        let alertBoxRef;
+        query.forEach(doc => {
+            alertBoxRef = db.collection("alertbox").doc(doc.id)
+        })
+        await alertBoxRef.update({
+            userid, type, ttsVolume
+        })
     }
 
     async getAlertBox(userid, type) {
-        /*let [rows, fields] = await (await this.getConnection()).execute(
-            'SELECT `userid`,`type`,`message`, `volume`, `duration`, `tssvolume`, `imagefilename`, `audiofilename` FROM `alertbox` WHERE `userid` LIKE ? AND `type` LIKE ?'
-            , [userid, type]);
-        return rows;*/
-        return {}
+        let query = await db.collection("alertbox").where("userid","==",userid).where("type","==", type).get()
+        let alertBoxData;
+        query.forEach(doc => {
+            alertBoxData = doc.data()
+        })
+        return alertBoxData
+    }
+
+    async getFileFromStorage(directory,filename){
+        let result = await storage.file(`uploads/${directory}/${filename}`).download()
+        return result[0]
+    }
+
+    async uploadFileToStorage(directory,filename,file){
+        await storage.file(`uploads/${directory}/${filename}`).save(file)
+    }
+
+    async removeFileFromStorage(directory,filename){
+        await storage.file(`uploads/${directory}/${filename}`).delete()
+    }
+
+    async getFileUrlFromStorage(directory,filename,filetype){
+        let result = await storage.file(`uploads/${directory}/${filename}.${filetype}`).getSignedUrl({
+            action: 'read',
+            expires: '03-09-2491'
+        })
+        return result[0]
     }
 }
 
