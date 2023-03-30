@@ -23,7 +23,7 @@ class AlertboxController {
                 } catch(err){
                     return res.send({status:400, message:err.message})
                 }
-                return
+                return res.send({status:200})
             }
 
             const image = req.files?.image
@@ -37,7 +37,7 @@ class AlertboxController {
             } catch (err){
                 return res.send({status:400, message:err.message})
             }
-
+            return res.send({status:200})
         })
     }
 
