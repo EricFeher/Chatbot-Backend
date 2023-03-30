@@ -132,47 +132,49 @@ class TwitchService {
 
     followEventHandler(event) {
         console.log(`[FOLLOWEVENT]:`)
-        //TODO: Send it to frontend browsersource
+        global.alertWebSocket.sendEvent("follow",event)
     }
 
     subscribeEventHandler(event) {
         console.log(`[SUBSCRIBEEVENT]:`)
-        //TODO: Send it to frontend browsersource
+        if(event.is_gift) return
+        global.alertWebSocket.sendEvent("subscription", event)
     }
 
     reSubscriptionEventHandler(event) {
         console.log(`[RESUBSCRIBEEVENT]:`)
-        //TODO: Send it to frontend browsersource
+        global.alertWebSocket.sendEvent("resub", event)
     }
 
     subscriptionGiftEventHandler(event) {
         console.log(`[SUBSCRIBEGIFTEVENT]:`)
-        //TODO: Send it to frontend browsersource
+        global.alertWebSocket.sendEvent("subgift", event)
     }
 
     channelPointEventHandler(event) {
         console.log(`[CHANNELPOINTEVENT]:`)
-        //TODO: Send it to frontend browsersource
+        if((event.reward?.title==="Read Message" || event.reward?.title==="Test Reward from CLI") && event.user_input!=="")
+            global.alertWebSocket.sendChannelPointsEvent("channelPoints", event)
+        //TODO: Create channel point event logic
     }
 
     raidEventHandler(event) {
         console.log(`[RAIDEVENT]:`)
-        //TODO: Send it to frontend browsersource
+        global.alertWebSocket.sendEvent("raid", event)
     }
 
     cheerEventHandler(event) {
         console.log(`[CHEEREVENT]:`)
-        //TODO: Send it to frontend browsersource
+        global.alertWebSocket.sendEvent("cheer", event)
     }
 
     userUpdateEventHandler(event) {
-        new DAO().getUserById(event.user_id).then((rows) => {
-            let data = Object.values(JSON.parse(JSON.stringify(rows)));
-            if (data[0] === undefined) {
+        new DAO().getUserById(event.user_id).then((data) => {
+            if (data === undefined) {
                 return
             }
-            let user = new User(data[0].id, event.user_login, data[0].email,
-                data[0].access_token, data[0].refresh_token, data[0].id_token)
+            let user = new User(data.userid, event.user_login, data.email,
+                data.access_token, data.refresh_token, data.id_token)
             new DAO().updateUser(user)
                 .then(() => {
                     console.log("[TWITCHSERVICE]: User successfully updated by change in his profile")

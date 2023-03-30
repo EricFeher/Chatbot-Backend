@@ -1,5 +1,5 @@
-const DAO = require("../dao/dao");
-const Command = require("../model/command");
+const DAO = require("../dao/DAO");
+const Command = require("../model/Command");
 const WebSocketClient = require('websocket').client;
 
 class Twitch{
@@ -157,20 +157,17 @@ A bejövő üzenetekből kiválasztja a kommandokat és választ ad a kommandokr
             this.adminCommands(userData,message,channel,command,splittedMessage)
         }
         else{
-            this.basicCommands(channel,command)
+            this.basicCommands(userData.get("room-id"),channel,command)
         }
     }
 /*
 Átlagos nézők által beváltható, és egyszerű kommandok
  */
-    basicCommands(channel,command){
-        new DAO().getCommand(channel,command).then((rows)=>{
-            let data = Object.values(JSON.parse(JSON.stringify(rows)));
-            if(data[0]!==undefined){
-                this.sendMessage(channel,data[0]["result"]);
-            }
-
-        });
+    async basicCommands(userid,channel,command){
+        let cmd = await new DAO().getCommandByUserIdAndCommand(userid,command)
+        if(cmd!==undefined){
+            this.sendMessage(channel,cmd.result);
+        }
     }
 /*
 Admin kommandok, létrehozás, változtatás, törlés

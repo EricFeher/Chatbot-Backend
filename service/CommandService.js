@@ -1,4 +1,4 @@
-const DAO = require("../dao/dao");
+const DAO = require("../dao/DAO");
 const fs = require('fs');
 const Command = require("../model/Command");
 
@@ -22,13 +22,13 @@ class CommandService {
         if(message.length > 500 || command.length > 100){
             throw Error("Too long command or message")
         }
-        let result = await new DAO().getCommandByIdAndCommand(userid,command)
+        let result = await new DAO().getCommandByUserIdAndCommand(userid,command)
         const cmd = new Command()
         cmd.command=command
         cmd.result=message
         cmd.userid=userid
 
-        if(result.length===0){
+        if(result===undefined){
             await this.createCommand(cmd)
         }else{
 
